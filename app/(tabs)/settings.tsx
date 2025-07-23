@@ -1,15 +1,9 @@
-import { api } from '@/convex/_generated/api'
-import { useQuery } from 'convex/react'
 import { StyleSheet, Text, View } from 'react-native'
 
 const Tab = () => {
-  const tasks = useQuery(api.tasks.get)
-
   return (
     <View style={styles.container}>
-      <Text>
-        {tasks?.map(({ _id, text }) => <Text key={_id}>{text}</Text>)}
-      </Text>
+      <Text>Settings </Text>
     </View>
   )
 }

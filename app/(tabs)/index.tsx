@@ -1,25 +1,25 @@
-import { api } from '@/convex/_generated/api'
-import { useQuery } from 'convex/react'
-import { StyleSheet, Text, View } from 'react-native'
+import { SignOutButton } from '@/components/SignOutButton'
+import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
+import { Link } from 'expo-router'
+import { Text, View } from 'react-native'
 
-const Tab = () => {
-  const tasks = useQuery(api.tasks.get)
+export default function Page() {
+  const { user } = useUser()
 
   return (
-    <View style={styles.container}>
-      <Text>
-        {tasks?.map(({ _id, text }) => <Text key={_id}>{text}</Text>)}
-      </Text>
+    <View>
+      <SignedIn>
+        <Text>Hello {user?.emailAddresses[0].emailAddress}</Text>
+        <SignOutButton />
+      </SignedIn>
+      <SignedOut>
+        <Link href="/(auth)/sign-in">
+          <Text>Sign in</Text>
+        </Link>
+        <Link href="/(auth)/sign-up">
+          <Text>Sign up</Text>
+        </Link>
+      </SignedOut>
     </View>
   )
 }
-
-export default Tab
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-})

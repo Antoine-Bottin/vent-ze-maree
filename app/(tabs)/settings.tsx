@@ -1,19 +1,12 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { useUser } from '@clerk/clerk-expo'
+import { Text, View } from 'react-native'
 
-const Tab = () => {
+export default function Page() {
+  const { user } = useUser()
+
   return (
-    <View style={styles.container}>
-      <Text>Settings </Text>
+    <View>
+      <Text>Settings {user?.id}</Text>
     </View>
   )
 }
-
-export default Tab
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-})

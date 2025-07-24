@@ -5,7 +5,7 @@ export default function Layout() {
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
       <Tabs.Screen
-        name="index" // Corresponds to app/(tabs)/index.tsx
+        name="home" // Corresponds to app/(tabs)/home.tsx
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (

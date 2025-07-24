@@ -1,14 +1,14 @@
 import { useSignIn } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
-import React from 'react'
+import React, { useState } from 'react'
 import { Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
   const router = useRouter()
 
-  const [emailAddress, setEmailAddress] = React.useState('')
-  const [password, setPassword] = React.useState('')
+  const [emailAddress, setEmailAddress] = useState('')
+  const [password, setPassword] = useState('')
 
   // Handle the submission of the sign-in form
   const onSignInPress = async () => {
@@ -25,7 +25,7 @@ export default function Page() {
       // and redirect the user
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
-        router.replace('/')
+        router.replace('/home')
       } else {
         // If the status isn't complete, check why. User might need to
         // complete further steps.

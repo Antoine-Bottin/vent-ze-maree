@@ -2,12 +2,13 @@ import { SignOutButton } from '@/components/SignOutButton'
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import { Link } from 'expo-router'
 import { Text, View } from 'react-native'
+import globalStyles from './styles/globalStyles'
 
 export default function Page() {
   const { user } = useUser()
 
   return (
-    <View>
+    <View style={[globalStyles.container, globalStyles.centerContent]}>
       <SignedIn>
         <Text>Hello {user?.emailAddresses[0].emailAddress}</Text>
         <SignOutButton />

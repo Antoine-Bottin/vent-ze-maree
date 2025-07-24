@@ -1,5 +1,5 @@
 import { useSignUp } from '@clerk/clerk-expo'
-import { useRouter } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import * as React from 'react'
 import { Text, TextInput, TouchableOpacity, View } from 'react-native'
 
@@ -100,9 +100,9 @@ export default function SignUpScreen() {
         </TouchableOpacity>
         <View style={{ display: 'flex', flexDirection: 'row', gap: 3 }}>
           <Text>Already have an account?</Text>
-          <a href="/sign-in">
+          <Link href="/sign-in">
             <Text>Sign in</Text>
-          </a>
+          </Link>
         </View>
       </>
     </View>

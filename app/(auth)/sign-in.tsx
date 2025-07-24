@@ -2,6 +2,7 @@ import { useSignIn } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { Text, TextInput, TouchableOpacity, View } from 'react-native'
+import globalStyles from '../styles/globalStyles'
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
@@ -39,7 +40,7 @@ export default function Page() {
   }
 
   return (
-    <View>
+    <View style={[globalStyles.container]}>
       <Text>Sign in</Text>
       <TextInput
         autoCapitalize="none"

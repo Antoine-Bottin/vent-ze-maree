@@ -18,7 +18,7 @@ export default StyleSheet.create({
     elevation: 5,
   },
   background: {
-    backgroundColor: '#F5DEB3',
+    backgroundColor: '#3D6B82',
   },
   font: {
     color: '#4682B4',

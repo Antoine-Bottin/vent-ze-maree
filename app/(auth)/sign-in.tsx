@@ -40,22 +40,37 @@ export default function Page() {
   }
 
   return (
-    <View style={[globalStyles.container]}>
-      <Text>Sign in</Text>
-      <TextInput
-        autoCapitalize="none"
-        value={emailAddress}
-        placeholder="Enter email"
-        onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
-      />
-      <TextInput
-        value={password}
-        placeholder="Enter password"
-        secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
-      />
+    <View
+      style={[
+        globalStyles.container,
+        {
+          backgroundColor: '#5F9EA0',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+      ]}
+    >
+      <Text style={styles.title}>Sign in</Text>
+      <View style={styles.inputsContainer}>
+        <TextInput
+          autoCapitalize="none"
+          value={emailAddress}
+          placeholder="Enter email"
+          onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
+          style={styles.inputs}
+        />
+        <TextInput
+          value={password}
+          placeholder="Enter password"
+          secureTextEntry={true}
+          onChangeText={(password) => setPassword(password)}
+          style={styles.inputs}
+        />
+      </View>
+
       <TouchableOpacity onPress={onSignInPress}>
         <Text>Continue</Text>
+        <Text>OR</Text>
       </TouchableOpacity>
       <View style={{ display: 'flex', flexDirection: 'row', gap: 3 }}>
         <Link href="/sign-up">
@@ -64,4 +79,15 @@ export default function Page() {
       </View>
     </View>
   )
+}
+
+const styles = {
+  title: { fontSize: 50, marginBottom: 20 },
+  inputsContainer: {
+    border: '1px solid #4682B4',
+    borderRadius: 5,
+  },
+  inputs: {
+    backgroundColor: 'transparent',
+  },
 }

@@ -1,5 +1,5 @@
 import { SignOutButton } from '@/components/SignOutButton'
-import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
+import { SignedIn, SignedOut, useAuth, useUser } from '@clerk/clerk-expo'
 import { Link } from 'expo-router'
 import { ImageBackground, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -8,14 +8,18 @@ import globalStyles from './styles/globalStyles'
 export default function Page() {
   const { user } = useUser()
 
-  const picture = require('../assets/images/auth-background.png')
+  const { isSignedIn } = useAuth()
+  console.log('Signed in:', isSignedIn)
+
+  const backgroundPicture = require('../assets/images/auth-background.png')
+  // const appLogo = require('../assets/images/app-logo.png')
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
         <ImageBackground
-          source={picture}
-          blurRadius={3} // <-- move it here
+          source={backgroundPicture}
+          blurRadius={2} // <-- move it here
           style={{
             flex: 1,
             width: '100%',
@@ -23,32 +27,16 @@ export default function Page() {
           }}
         >
           <View style={globalStyles.container}>
-            {/* <Text
-              style={{
-                position: 'absolute',
-                top: '5%',
-                fontFamily: 'Lato',
-                fontSize: 60,
-                marginBottom: 5,
-                color: '#2C4A57',
-              }}
-            >
-              VentZéMarée
-            </Text> */}
-            {/* <Text
-                style={{
-                  fontFamily: 'Lato',
-                  fontSize: 20,
-                  marginBottom: 30,
-                  color: '#2C4A57',
-                }}
-              >
-                The first app telling you the best condition for a walk on the
-                beach
-              </Text> */}
-
+            {/* <Image
+              style={{ flex: 1, width: '100%', backgroundColor: 'transparent' }}
+              source={appLogo}
+              placeholder={{ blurhash }}
+              contentFit="contain"
+              transition={1000}
+            /> */}
             <SignedIn>
               <Text>Hello {user?.emailAddresses[0].emailAddress}</Text>
+              <Link href="/home">Continue</Link>
               <SignOutButton />
             </SignedIn>
             <SignedOut>

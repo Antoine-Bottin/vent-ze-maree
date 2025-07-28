@@ -18,8 +18,11 @@ export default function Page() {
 
   useEffect(() => {
     async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== 'granted') {
+      let { status: foregroundStatus } =
+        await Location.requestForegroundPermissionsAsync()
+      let { status: backgroundStatus } =
+        await Location.requestBackgroundPermissionsAsync()
+      if (foregroundStatus !== 'granted' && backgroundStatus !== 'granted') {
         setErrorMsg('Permission to access location was denied')
         return
       }
@@ -45,7 +48,7 @@ export default function Page() {
           console.log(result)
           setPlacesLoading(false)
         } catch (e) {
-          console.log({ error: e?.message || e })
+          console.log(e)
         } finally {
           setPlacesLoading(false) // Ensure loading state is reset
         }
@@ -64,11 +67,13 @@ export default function Page() {
           Aucune plage trouvée ou résultat vide.
         </Text>
       )}
-      {closestBeaches.map(({ name, distance }) => (
+      {closestBeaches.map(({ name, distance, long, lat }) => (
         <View style={styles.cardContainer} key={name}>
           <View style={styles.city}>
             <Text>{name}</Text>
             <Text>{distance}</Text>
+            <Text>{lat}</Text>
+            <Text>{long}</Text>
           </View>
           <View>
             <Text>Température</Text>

@@ -15,7 +15,7 @@ export const getPlacesAndDistances = action({
     // 1. Première étape : Trouver les plages avec l'API Places (searchNearby)
     const placesBody = {
       includedTypes: ['beach'],
-      maxResultCount: 10,
+      maxResultCount: 5,
       rankPreference: 'DISTANCE', // La Distance Matrix API calculera la distance réelle
       locationRestriction: {
         circle: {
@@ -87,6 +87,8 @@ export const getPlacesAndDistances = action({
       return {
         name: beach.displayName.text,
         distance: distance,
+        lat: beach.location.latitude,
+        long: beach.location.longitude,
       }
     })
 

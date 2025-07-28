@@ -7,6 +7,8 @@ import globalStyles from '../styles/globalStyles'
 export default function Page() {
   const { user } = useUser()
 
+  console.log(user)
+
   return (
     <View style={[globalStyles.container, globalStyles.background]}>
       <Slider

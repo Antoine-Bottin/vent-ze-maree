@@ -1,4 +1,6 @@
+import { api } from '@/convex/_generated/api'
 import { useSignUp } from '@clerk/clerk-expo'
+import { useMutation } from 'convex/react'
 import { Link, useRouter } from 'expo-router'
 import * as React from 'react'
 import { Text, TextInput, TouchableOpacity, View } from 'react-native'
@@ -11,6 +13,8 @@ export default function SignUpScreen() {
   const [password, setPassword] = React.useState('')
   const [pendingVerification, setPendingVerification] = React.useState(false)
   const [code, setCode] = React.useState('')
+
+  const saveUser = useMutation(api.users.saveUser)
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {
@@ -50,6 +54,13 @@ export default function SignUpScreen() {
       // and redirect the user
       if (signUpAttempt.status === 'complete') {
         await setActive({ session: signUpAttempt.createdSessionId })
+        console.log(signUpAttempt)
+        await saveUser({
+          id: signUpAttempt.createdUserId || '',
+          email: signUpAttempt.emailAddress || '',
+          name: signUpAttempt.lastName || 'Name not provided',
+        })
+
         router.replace('/')
       } else {
         // If the status is not complete, check why. User may need to

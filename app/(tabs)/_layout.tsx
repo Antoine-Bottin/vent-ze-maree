@@ -6,29 +6,30 @@ export default function Layout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarStyle: { position: 'absolute' },
-        tabBarBackground: () => <BlurView tint="dark" intensity={100} />,
+        tabBarStyle: { position: 'absolute', height: 80, borderTopWidth: 0 },
+        tabBarBackground: () => <BlurView tint="light" intensity={100} />,
         tabBarActiveTintColor: '#2C4A57',
         tabBarInactiveTintColor: '#7FB3C2',
         animation: 'shift',
         tabBarLabelPosition: 'below-icon',
+        tabBarIconStyle: { marginBottom: 5 },
       }}
     >
       <Tabs.Screen
-        name="home" // Corresponds to app/(tabs)/home.tsx
+        name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="home" color={color} />
+            <FontAwesome size={40} name="home" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="settings" // Corresponds to app/(tabs)/settings.tsx
+        name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="cog" color={color} />
+            <FontAwesome size={40} name="cog" color={color} />
           ),
         }}
       />

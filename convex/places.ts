@@ -8,22 +8,21 @@ export const getPlacesAndDistances = action({
     radius: v.optional(v.number()), // Make radius optional with a default if not provided
   },
   handler: async (ctx, { latitude, longitude, radius }) => {
-    // const centerLatitude = 49.8597888
-    // const centerLongitude = 1.0616832
-    const googleApiKey = `${process.env.GOOGLE_MAPS_PLATFORM_API_KEY}` // Remplacez par votre VRAIE clé API Google
+    const googleApiKey = `${process.env.GOOGLE_MAPS_PLATFORM_API_KEY}`
+    const stormGlassApiKey = `${process.env.STORMGLASS_IO_API_KEY}`
 
     // 1. Première étape : Trouver les plages avec l'API Places (searchNearby)
     const placesBody = {
       includedTypes: ['beach'],
       maxResultCount: 5,
-      rankPreference: 'DISTANCE', // La Distance Matrix API calculera la distance réelle
+      rankPreference: 'DISTANCE',
       locationRestriction: {
         circle: {
           center: {
             latitude: latitude,
             longitude: longitude,
           },
-          radius: radius, // Rayon de 50km
+          radius: radius,
         },
       },
     }
@@ -34,7 +33,7 @@ export const getPlacesAndDistances = action({
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': googleApiKey,
-          'X-Goog-FieldMask': 'places.displayName,places.id,places.location', // Demandez l'ID et le nom d'affichage
+          'X-Goog-FieldMask': 'places.displayName,places.id,places.location',
         },
         method: 'POST',
         body: JSON.stringify(placesBody),
@@ -54,10 +53,9 @@ export const getPlacesAndDistances = action({
 
     const placesResult = await placesResponse.json()
     const beaches = placesResult.places
-    console.log('plages', beaches)
 
     if (!beaches || beaches.length === 0) {
-      return [] // Aucune plage trouvée
+      return []
     }
 
     // 2. Deuxième étape : Utiliser l'API Distance Matrix pour obtenir les distances
@@ -71,7 +69,7 @@ export const getPlacesAndDistances = action({
 
     const distanceMatrixResult = await distanceMatrixResponse.json()
 
-    const beachesWithDistance = beaches.map((beach: any, index: number) => {
+    const beachPromises = beaches.map(async (beach: any, index: number) => {
       let distance = 'N/A'
       // Vérifier si la réponse de Distance Matrix est valide et contient l'information
       if (
@@ -84,6 +82,27 @@ export const getPlacesAndDistances = action({
         distance = distanceMatrixResult.rows[0].elements[index].distance.text
       }
 
+      const params = 'windSpeed,waveHeight,airTemperature'
+      //&start=2019-03-15&end=2019-03-15 ?? to add
+      const stormglassWeather = await fetch(
+        `https://api.stormglass.io/v2/weather/point?lat=${beach.location.latitude}&lng=${beach.location.longitude}&params=${params}`,
+        {
+          headers: {
+            Authorization: stormGlassApiKey,
+          },
+        },
+      ).then((response) => response.json())
+
+      const stormGlassTide = await fetch(
+        `https://api.stormglass.io/v2/tide/extremes/point?lat=${beach.location.latitude}&lng=${beach.location.longitude}&start=2019-03-15&end=2019-03-15`,
+        {
+          headers: {
+            Authorization: stormGlassApiKey,
+          },
+        },
+      ).then((response) => response.json())
+
+      console.log('Weather', stormglassWeather, 'Tide', stormGlassTide)
       return {
         name: beach.displayName.text,
         distance: distance,
@@ -92,6 +111,7 @@ export const getPlacesAndDistances = action({
       }
     })
 
+    const beachesWithDistance = await Promise.all(beachPromises)
     return beachesWithDistance
   },
 })

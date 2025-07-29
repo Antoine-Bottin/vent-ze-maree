@@ -8,6 +8,7 @@ import globalStyles from '../styles/globalStyles'
 
 export default function Page() {
   const { user } = useUser()
+  const [status, requestPermission] = Location.useBackgroundPermissions()
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -18,11 +19,12 @@ export default function Page() {
 
   useEffect(() => {
     async function getCurrentLocation() {
-      let { status: foregroundStatus } =
-        await Location.requestForegroundPermissionsAsync()
-      let { status: backgroundStatus } =
-        await Location.requestBackgroundPermissionsAsync()
-      if (foregroundStatus !== 'granted' && backgroundStatus !== 'granted') {
+      // let { status: foregroundStatus } =
+      //   await Location.requestForegroundPermissionsAsync()
+      // let { status: backgroundStatus } =
+      //   await Location.requestBackgroundPermissionsAsync()
+      await requestPermission()
+      if (status && !status.granted) {
         setErrorMsg('Permission to access location was denied')
         return
       }
@@ -44,8 +46,7 @@ export default function Page() {
             longitude: location.coords.longitude,
             radius: 50000,
           })
-          setClosestBeaches(result?.beaches || result || [])
-          console.log(result)
+          setClosestBeaches(result || [])
           setPlacesLoading(false)
         } catch (e) {
           console.log(e)

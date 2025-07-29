@@ -7,7 +7,7 @@ export default function Layout() {
     <Tabs
       screenOptions={{
         tabBarStyle: { position: 'absolute', height: 80, borderTopWidth: 0 },
-        tabBarBackground: () => <BlurView tint="light" intensity={100} />,
+        tabBarBackground: () => <BlurView tint="dark" intensity={100} />,
         tabBarActiveTintColor: '#2C4A57',
         tabBarInactiveTintColor: '#7FB3C2',
         animation: 'shift',

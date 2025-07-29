@@ -14,7 +14,7 @@ export const getPlacesAndDistances = action({
     // 1. Première étape : Trouver les plages avec l'API Places (searchNearby)
     const placesBody = {
       includedTypes: ['beach'],
-      maxResultCount: 5,
+      maxResultCount: 4,
       rankPreference: 'DISTANCE',
       locationRestriction: {
         circle: {
@@ -84,6 +84,8 @@ export const getPlacesAndDistances = action({
 
       const params = 'windSpeed,waveHeight,airTemperature'
       //&start=2019-03-15&end=2019-03-15 ?? to add
+
+      //WEATHER and Wave height
       const stormglassWeather = await fetch(
         `https://api.stormglass.io/v2/weather/point?lat=${beach.location.latitude}&lng=${beach.location.longitude}&params=${params}`,
         {
@@ -93,6 +95,7 @@ export const getPlacesAndDistances = action({
         },
       ).then((response) => response.json())
 
+      //Tides
       const stormGlassTide = await fetch(
         `https://api.stormglass.io/v2/tide/extremes/point?lat=${beach.location.latitude}&lng=${beach.location.longitude}&start=2019-03-15&end=2019-03-15`,
         {

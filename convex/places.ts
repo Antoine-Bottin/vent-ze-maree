@@ -9,12 +9,12 @@ export const getPlacesAndDistances = action({
   },
   handler: async (ctx, { latitude, longitude, radius }) => {
     const googleApiKey = `${process.env.GOOGLE_MAPS_PLATFORM_API_KEY}`
-    const stormGlassApiKey = `${process.env.STORMGLASS_IO_API_KEY}`
+    const weatherAPIKey = `${process.env.WEATHERAPI_API_KEY}`
 
     // 1. Première étape : Trouver les plages avec l'API Places (searchNearby)
     const placesBody = {
       includedTypes: ['beach'],
-      maxResultCount: 4,
+      maxResultCount: 8,
       rankPreference: 'DISTANCE',
       locationRestriction: {
         circle: {
@@ -82,35 +82,62 @@ export const getPlacesAndDistances = action({
         distance = distanceMatrixResult.rows[0].elements[index].distance.text
       }
 
-      const params = 'windSpeed,waveHeight,airTemperature'
-      //&start=2019-03-15&end=2019-03-15 ?? to add
+      //WeatherAPI
+      const latAndLong = `${beach.location.latitude},${beach.location.longitude}`
+      const currentWeatherAPIResponse = await fetch(
+        `https://api.weatherapi.com/v1/current.json?key=${weatherAPIKey}&q=${latAndLong}`,
+      )
 
-      //WEATHER and Wave height
-      const stormglassWeather = await fetch(
-        `https://api.stormglass.io/v2/weather/point?lat=${beach.location.latitude}&lng=${beach.location.longitude}&params=${params}`,
-        {
-          headers: {
-            Authorization: stormGlassApiKey,
-          },
-        },
-      ).then((response) => response.json())
+      if (!currentWeatherAPIResponse.ok) {
+        // IMPORTANT: Consume the response body even on error
+        const errorBody = await currentWeatherAPIResponse.text() // Or .json() if the error is JSON formatted
+        console.error(
+          "Erreur lors de l'appel à WeatherAPI:",
+          currentWeatherAPIResponse.status,
+          errorBody, // Log the actual error body for better debugging
+        )
+        throw new Error('Échec de la récupération des données météo.')
+      }
 
-      //Tides
-      const stormGlassTide = await fetch(
-        `https://api.stormglass.io/v2/tide/extremes/point?lat=${beach.location.latitude}&lng=${beach.location.longitude}&start=2019-03-15&end=2019-03-15`,
-        {
-          headers: {
-            Authorization: stormGlassApiKey,
-          },
-        },
-      ).then((response) => response.json())
+      // Only if response.ok, then parse JSON
+      const weatherData = await currentWeatherAPIResponse.json()
+      console.log('Weather Data:', weatherData)
 
-      console.log('Weather', stormglassWeather, 'Tide', stormGlassTide)
+      //MarineAPI
+      const marineAPIResponse = await fetch(
+        `https://api.weatherapi.com/v1/marine.json?key=${weatherAPIKey}&q=${latAndLong}`,
+      )
+
+      if (!marineAPIResponse.ok) {
+        // IMPORTANT: Consume the response body even on error
+        const errorBody = await currentWeatherAPIResponse.text() // Or .json() if the error is JSON formatted
+        console.error(
+          "Erreur lors de l'appel à WeatherAPI:",
+          currentWeatherAPIResponse.status,
+          errorBody, // Log the actual error body for better debugging
+        )
+        throw new Error('Échec de la récupération des données météo.')
+      }
+
+      // Only if response.ok, then parse JSON
+      const marineData = await marineAPIResponse.json()
+      const computedMarineData = marineData.forecast.forecastday[0].day
+
+      // console.log('MarineData:', computedMarineData)
+      const tides = computedMarineData.tides[0].tide
+
       return {
         name: beach.displayName.text,
         distance: distance,
         lat: beach.location.latitude,
         long: beach.location.longitude,
+        temp: weatherData.current.temp_c, // Assuming you want the temperature in Celsius
+        condition: weatherData.current.condition.text, // Weather condition text
+        icon: weatherData.current.condition.icon, // Weather condition icon URL
+        wind: weatherData.current.wind_kph, // Wind speed in km/h
+        windDir: weatherData.current.wind_dir, // Wind direction
+        humidity: weatherData.current.cloud,
+        tides: tides,
       }
     })
 

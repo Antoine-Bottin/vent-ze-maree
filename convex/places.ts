@@ -1,7 +1,16 @@
 import { v } from 'convex/values'
 import { action } from './_generated/server'
 
-export const getPlacesAndDistances = action({
+export const getCurrentData = action({
+  args: { latitude: v.number(), longitude: v.number() },
+  handler: (ctx, { latitude, longitude }) => {
+    // do something with `args.a` and `args.b`
+
+    // optionally return a value
+    return 'success'
+  },
+})
+export const getPlacesAndData = action({
   args: {
     latitude: v.number(),
     longitude: v.number(),
@@ -101,7 +110,6 @@ export const getPlacesAndDistances = action({
 
       // Only if response.ok, then parse JSON
       const weatherData = await currentWeatherAPIResponse.json()
-      console.log('Weather Data:', weatherData)
 
       //MarineAPI
       const marineAPIResponse = await fetch(
@@ -122,8 +130,7 @@ export const getPlacesAndDistances = action({
       // Only if response.ok, then parse JSON
       const marineData = await marineAPIResponse.json()
       const computedMarineData = marineData.forecast.forecastday[0].day
-
-      // console.log('MarineData:', computedMarineData)
+      const waveHourlyInfos = marineData.forecast.forecastday[0].hour
       const tides = computedMarineData.tides[0].tide
 
       return {
@@ -138,10 +145,11 @@ export const getPlacesAndDistances = action({
         windDir: weatherData.current.wind_dir, // Wind direction
         humidity: weatherData.current.cloud,
         tides: tides,
+        waveInfos: waveHourlyInfos,
       }
     })
 
-    const beachesWithDistance = await Promise.all(beachPromises)
-    return beachesWithDistance
+    const beachesWithData = await Promise.all(beachPromises)
+    return beachesWithData
   },
 })

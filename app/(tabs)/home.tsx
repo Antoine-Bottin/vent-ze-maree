@@ -18,14 +18,12 @@ import globalStyles from '../styles/globalStyles'
 
 export default function Page() {
   const { user } = useUser()
-  console.log(user?.id)
 
   const [permissionStatus, requestPermission] =
-    Location.useBackgroundPermissions()
-
+    Location.useForegroundPermissions() // Using foreground permissions is usually sufficient for this use case.
   const [location, setLocation] = useState<Location.LocationObject | null>(null)
-  console.log('LOCATION', location)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
   const [closestBeaches, setClosestBeaches] = useState<any[]>([])
   const [placesLoading, setPlacesLoading] = useState<boolean>(false)
 
@@ -33,125 +31,85 @@ export default function Page() {
   type LocationRefType = number | Location.LocationSubscription | null
   const locationSubscriptionRef = useRef<LocationRefType>(null)
 
-  const getPlacesAndDistances = useAction(api.places.getPlacesAndDistances)
+  const getPlacesAndDistances = useAction(api.places.getPlacesAndData)
+
+  const setupLocationListener = async () => {
+    // Clear any previous errors or state
+    setErrorMsg(null)
+    setPlacesLoading(true)
+    setLocation(null) // Reset location state before starting a new search
+
+    // 1. Request permissions first
+    let { status } = permissionStatus || { status: 'undetermined' }
+    if (status !== 'granted') {
+      const { status: newStatus } = await requestPermission()
+      status = newStatus
+    }
+
+    // 2. Handle permission denial
+    if (status !== 'granted') {
+      setErrorMsg(
+        'Permission to access location was denied. Please enable it in your device settings.',
+      )
+      setPlacesLoading(false)
+      return
+    }
+
+    // 3. If granted, try to get the current location once with a timeout.
+    // This is more reliable for a single location fix than a long-running listener.
+    // Create a custom timeout promise
+    const timeoutPromise = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error('Location request timed out.'))
+      }, 20000) // Set your desired timeout here (e.g., 20 seconds)
+    })
+
+    try {
+      // Race the location promise against the timeout promise
+      const currentPosition = await Promise.race([
+        Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        }),
+        timeoutPromise,
+      ])
+
+      // If the location promise wins the race, the result is assigned here.
+      setLocation(currentPosition as Location.LocationObject)
+      setErrorMsg(null)
+    } catch (e: any) {
+      console.log('Error getting current location:', e)
+      // This catch block will now handle both location errors and our custom timeout error.
+      setErrorMsg(e.message)
+      setPlacesLoading(false)
+    }
+  }
 
   // 1. Effect for requesting permission and setting up location listener
   useEffect(() => {
-    const setupLocationListener = async () => {
-      // Request permissions
-      if (permissionStatus === null || !permissionStatus.granted) {
-        const { status } = await requestPermission()
-        if (status !== 'granted') {
-          setErrorMsg('Permission to access location was denied')
-          return
-        }
-      }
-
-      // If permission is granted (or was already granted), start listening for updates
-      if (permissionStatus && permissionStatus.granted) {
-        // Clear previous subscription if it exists
-        if (locationSubscriptionRef.current) {
-          if (Platform.OS === 'web') {
-            // On web, if we explicitly assigned a number, it will be a number.
-            // But to be safe, we can add a check or rely on the fact we control what's assigned.
-            // The simplest cast here is usually safe IF you control the assignment.
-            // More robust: ensure it's a number.
-            if (typeof locationSubscriptionRef.current === 'number') {
-              navigator.geolocation.clearWatch(locationSubscriptionRef.current)
-            } else {
-              // This case implies an error in logic or unexpected type on web
-              console.warn(
-                'Expected numeric ID for web clearWatch, got:',
-                locationSubscriptionRef.current,
-              )
-              // Attempt to remove if it has the method (unlikely for web with direct navigator API)
-              if (
-                (
-                  locationSubscriptionRef.current as Location.LocationSubscription
-                ).remove
-              ) {
-                ;(
-                  locationSubscriptionRef.current as Location.LocationSubscription
-                ).remove()
-              }
-            }
-          } else {
-            // On native, it will be a LocationSubscription object
-            // Ensure it has the .remove method before calling
-            if (
-              (locationSubscriptionRef.current as Location.LocationSubscription)
-                .remove
-            ) {
-              ;(
-                locationSubscriptionRef.current as Location.LocationSubscription
-              ).remove()
-            }
-          }
-          locationSubscriptionRef.current = null
-        }
-
-        // Start listening for location updates
-        if (Platform.OS === 'web') {
-          // On web, watchPosition returns a numeric ID
-          locationSubscriptionRef.current = navigator.geolocation.watchPosition(
-            (newLocation) => {
-              // Convert browser GeolocationPosition to Expo's LocationObject format
-              setLocation({
-                coords: {
-                  latitude: newLocation.coords.latitude,
-                  longitude: newLocation.coords.longitude,
-                  altitude: newLocation.coords.altitude,
-                  accuracy: newLocation.coords.accuracy,
-                  altitudeAccuracy: newLocation.coords.altitudeAccuracy || null,
-                  heading: newLocation.coords.heading,
-                  speed: newLocation.coords.speed,
-                },
-                timestamp: newLocation.timestamp,
-              })
-            },
-            (error) => {
-              setErrorMsg(error.message)
-            },
-            {
-              // CORRECTED: Use enableHighAccuracy for web
-              enableHighAccuracy: true, // Request best possible accuracy for browser
-              timeout: 20000,
-              maximumAge: 1000,
-            },
-          )
-        } else {
-          // On native, expo-location's watchPositionAsync returns the subscription object
-          locationSubscriptionRef.current = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.High, distanceInterval: 10000 },
-            (newLocation) => {
-              setLocation(newLocation)
-            },
-          )
-        }
-      }
-    }
-
+    // We only want to run the setup once on component mount.
+    // The dependency array is empty, which means it will run only once.
+    // We'll call the function directly.
     setupLocationListener()
 
-    // Cleanup function: important to unsubscribe from location updates
+    // The cleanup function is still important to unsubscribe if a listener was set up
     return () => {
       if (locationSubscriptionRef.current) {
         Platform.select({
           web: () => {
-            navigator.geolocation.clearWatch(
-              locationSubscriptionRef.current as number,
-            )
+            if (typeof locationSubscriptionRef.current === 'number') {
+              navigator.geolocation.clearWatch(locationSubscriptionRef.current)
+            }
           },
           default: () => {
             ;(
               locationSubscriptionRef.current as Location.LocationSubscription
-            ).remove()
+            )?.remove()
           },
-        })() // Immediately invoke the selected function
+        })()
         locationSubscriptionRef.current = null
       }
     }
-  }, [permissionStatus, requestPermission]) // Re-run if permission status or requestPermission function changes
+  }, []) // Empty dependency array means this runs only once on mount
 
   // 2. Effect for fetching places when location changes
   useEffect(() => {
@@ -168,28 +126,27 @@ export default function Page() {
           setClosestBeaches(result || [])
         } catch (e) {
           console.log('Error fetching places:', e)
-          // Consider showing an error message to the user
+          setErrorMsg('Failed to fetch beaches. Please try again.')
         } finally {
-          setPlacesLoading(false) // Ensure loading state is reset
+          setPlacesLoading(false)
         }
       } else {
-        // Optionally, reset beaches or show a message if location is null
         setClosestBeaches([])
-        setPlacesLoading(false)
+        // This 'else' block will now only run if location is explicitly null,
+        // which might be due to an error, but not during the initial loading state.
       }
     }
 
-    // Debounce or throttle API calls if location changes very frequently
-    // This is crucial for performance and API limits
     const handler = setTimeout(() => {
       fetchPlaces()
-    }, 500) // Wait 500ms after last location change before fetching
+    }, 500) // Debounce for 500ms
 
     return () => {
-      clearTimeout(handler) // Clear timeout if location changes again quickly
+      clearTimeout(handler)
     }
   }, [location, getPlacesAndDistances]) // Re-fetch when `location` state changes
 
+  // ... (rest of your render logic remains the same)
   return (
     <ScrollView
       style={[
@@ -200,12 +157,17 @@ export default function Page() {
       <View>
         <Text>LOCAL INFOS</Text>
       </View>
-      {errorMsg && <Text style={{ color: 'red' }}>{errorMsg}</Text>}
-      {placesLoading ? (
+      {errorMsg && (
+        <View>
+          <Text style={{ color: 'red' }}>{errorMsg}</Text>
+        </View>
+      )}
+      {placesLoading && !errorMsg ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#E0A86A" />
+          <Text>Getting your location and finding nearby beaches...</Text>
         </View>
-      ) : closestBeaches.length === 0 ? ( // Only show "no beaches" if not loading AND no beaches found
+      ) : closestBeaches.length === 0 && !errorMsg ? (
         <Text style={{ color: 'orange' }}>
           Aucune plage trouvée ou résultat vide.
         </Text>
@@ -223,71 +185,77 @@ export default function Page() {
             wind,
             windDir,
             humidity,
-          }) => (
-            <View style={styles.cardContainer} key={name}>
-              <View style={styles.city}>
-                <Text>{name}</Text>
-              </View>
-              <View style={styles.dataContainer}>
-                <View>
-                  <View style={styles.temp}>
-                    <FontAwesome6 name="road" size={12} color="black" />{' '}
-                    <Text>{distance}</Text>
+            waveInfos,
+          }) => {
+            const currentHour = new Date().getHours()
+
+            // Find the next upcoming tide event
+            const now = new Date()
+            const nextTide = tides.find(
+              (tide: any) => new Date(tide.tide_time) > now,
+            )
+
+            return (
+              <View style={styles.cardContainer} key={name}>
+                <View style={styles.city}>
+                  <Text>{name}</Text>
+                </View>
+                <View style={styles.dataContainer}>
+                  <View>
+                    <View style={styles.temp}>
+                      <FontAwesome6 name="road" size={12} color="black" />
+                      <Text>{distance}</Text>
+                    </View>
+                    <View style={styles.temp}>
+                      <FontAwesome6
+                        name="temperature-half"
+                        size={12}
+                        color="black"
+                      />
+                      <Text>{temp}°C</Text> <Text>{waveInfos.waterTemp}°C</Text>
+                    </View>
+                    <View style={styles.temp}>
+                      <FontAwesome5 name="wind" size={12} color="black" />
+                      <Text>{wind}km/h</Text>
+                      <Text>{windDir}</Text>
+                    </View>
                   </View>
-                  <View style={styles.temp}>
-                    <FontAwesome6
-                      name="temperature-half"
-                      size={12}
-                      color="black"
-                    />{' '}
-                    <Text>{temp}°C</Text>
-                  </View>
-                  <View style={styles.temp}>
-                    <FontAwesome5 name="wind" size={12} color="black" />{' '}
-                    <Text>{wind}km/h</Text>
+                  <View>
+                    <View style={styles.temp}>
+                      <FontAwesome5 name="water" size={12} color="black" />
+                      {nextTide ? (
+                        <>
+                          <Text>{nextTide.tide_type}</Text>
+                          <Text>({nextTide.tide_height_mt} m)</Text>
+                        </>
+                      ) : (
+                        <Text>N/A</Text>
+                      )}
+                    </View>
+                    <View style={styles.temp}>
+                      <MaterialCommunityIcons
+                        name="wave"
+                        size={24}
+                        color="black"
+                      />
+                      <Text>
+                        {waveInfos && waveInfos[currentHour]
+                          ? `${waveInfos[currentHour].swell_ht_mt}m`
+                          : 'N/A'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-                <View>
-                  <View style={styles.temp}>
-                    <FontAwesome5 name="water" size={12} color="black" />{' '}
-                    <Text>High</Text>
-                  </View>
-                  <View style={styles.temp}>
-                    <MaterialCommunityIcons
-                      name="wave"
-                      size={24}
-                      color="black"
-                    />
-                    {tides.map(
-                      ({
-                        tide_time,
-                        tide_height,
-                        tide_type,
-                      }: {
-                        tide_time: string
-                        tide_height: string
-                        tide_type: string
-                      }) => {
-                        return (
-                          <View key={tide_time}>
-                            <Text>{tide_time}</Text>
-                            <Text>{tide_height}</Text>
-                            <Text>{tide_type}</Text>
-                          </View>
-                        )
-                      },
-                    )}
-                  </View>
-                </View>
               </View>
-            </View>
-          ),
+            )
+          },
         )
       )}
     </ScrollView>
   )
 }
 
+// ... (your StyleSheet remains the same)
 const styles = StyleSheet.create({
   cardContainer: {
     backgroundColor: '#D0D7DA',
@@ -295,6 +263,9 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     marginBottom: 10,
+    maxWidth: 768,
+    width: '100%',
+    marginInline: 'auto',
   },
   dataContainer: {
     display: 'flex',
